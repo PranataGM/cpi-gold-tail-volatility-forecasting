@@ -22,10 +22,9 @@ def main():
 
     dataset_path = os.path.join("data", "cpi_gold_merged_dataset.csv")
     if not os.path.exists(dataset_path):
-        print(f"[!] File dataset {dataset_path} belum ditemukan.")
-        print("[*] Menjalankan build_cpi_dataset.py terlebih dahulu...")
-        import build_cpi_dataset
-        print("[OK] Dataset berhasil dibangun.")
+        print(f"[!] File dataset '{dataset_path}' tidak ditemukan.")
+        print("[!] Pastikan berkas dataset tersedia di dalam folder 'data/'.")
+        return
 
     df_data = pd.read_csv(dataset_path)
     model = CPIGoldVolatilityModel(pip_threshold=350.0, top_k=5)
