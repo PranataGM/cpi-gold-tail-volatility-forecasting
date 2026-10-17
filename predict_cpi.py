@@ -42,7 +42,7 @@ def strip_ansi(s):
     return re.sub(r'\033\[[0-9;]*m', '', s)
 
 
-def box_row(content, width=58):
+def box_row(content, width=50):
     vis = len(strip_ansi(content))
     pad = max(0, width - vis)
     return f"{GREEN}│{RESET}{content}{' ' * pad}{GREEN}│{RESET}"
@@ -51,52 +51,75 @@ def box_row(content, width=58):
 def print_gold_header(dataset_count=80):
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # ASCII Art Logo (XAU/USD Gold Ingot)
-    logo = [
-        r"          .______________________.          ",
-        r"         /                      /|          ",
-        r"        /      X A U / U S D   / |          ",
-        r"       /      G O L D  999.9  /  |          ",
-        r"      /______________________/   |          ",
-        r"      |                      |   |          ",
-        r"      |   .--------------.   |   |          ",
-        r"      |   |  FINE  GOLD  |   |   |          ",
-        r"      |   |   1000 g     |   |   /          ",
-        r"      |   '--------------'   |  /           ",
-        r"      |     NET LIQUIDITY    | /            ",
-        r"      |______________________|/             ",
-        r"             [ XAUUSD ]                     ",
-        r"         Institutional Desk                 ",
-        r"                                            ",
-        r"                                            "
+    # Authentic NCCA Butterfly ASCII Art (White & Silver-Gray)
+    butterfly_raw = [
+        "                    '       '                  ",
+        ";,,,                '       '              ;;;;",
+        "`YES8888bo.         :       :       .od8888YES'",
+        "  888I08D088b.      :       :    .d8888I8D088  ",
+        "  8LOVEY'  `Y8b.    '       '  .d8Y'  `YLOVE8  ",
+        " jTHEE!  .db.  Yb. ' '     ' ' .dY .db.  8THEE!",
+        "   `888  Y88Y        `b ( ) d'     Y88Y  888'  ",
+        "    8MYb  '\"            ','         '\"   dMY8  ",
+        "   j8pRECIOUSgf\"'       ':'     `\"?g8pRECIOUSk ",
+        "     'Y'    .8'        d' 'b      '8.    'Y'   ",
+        "      !   .8' db      d'; ;'b    db '8.   !    ",
+        "         d88  `'      8 ; ; 8    `'  88b       ",
+        "        d88Ib       .g8 ',' 8g.     dI88b      ",
+        "        :888LOVE88Y'           'Y88LOVE888:    ",
+        "        '! THEE888'             `888THEE !'    ",
+        "          '8Y  `Y                 Y'  Y8'      ",
+        "            Y                         Y        "
     ]
 
-    row_cat   = f" {CYAN}CATALYST  {RESET}  US CPI INFLATION RELEASE (BLS / FOREXFACTORY)"
-    row_mod   = f" {CYAN}MODEL     {RESET}  MACRO SURPRISE & TAIL VOLATILITY (>= 350 PIPS)"
-    row_ds    = f" {CYAN}DATABASE  {RESET}  {dataset_count} HISTORICAL CPI EVENTS (2020 - 2026)"
+    LGRAY = '\033[38;5;252m'  # Silver light gray
+    MGRAY = '\033[38;5;246m'  # Slate mid gray
+    DGRAY = '\033[38;5;239m'  # Dark gray
+
+    butterfly_colored = []
+    for line in butterfly_raw:
+        out = []
+        for ch in line:
+            if ch == ' ':
+                out.append(' ')
+            elif ch in "':;,!\"`.":
+                out.append(f"{MGRAY}{ch}{RESET}")
+            elif ch in "80ID":
+                out.append(f"{WHITE}{ch}{RESET}")
+            else:
+                out.append(f"{LGRAY}{ch}{RESET}")
+        butterfly_colored.append("".join(out))
+
+    row_cat   = f" {CYAN}CATALYST  {RESET}  US CPI INFLATION RELEASE (BLS)"
+    row_mod   = f" {CYAN}MODEL     {RESET}  MACRO SURPRISE & VOLATILITY"
+    row_ds    = f" {CYAN}DATABASE  {RESET}  {dataset_count} HISTORICAL EVENTS (2020-26)"
     row_eng   = f" {CYAN}STATUS    {RESET}  ONLINE // 4-DATA PARSER READY"
     row_sc    = f" {CYAN}FORMAT    {RESET}  0.3, 0.2, 2.6, 2.5 (CORE & YOY)"
     row_time  = f" {CYAN}TIME      {RESET}  {now_str} WIB"
 
     right_panel = [
+        "",
         f"{BOLD}{WHITE}Hey, Trader{RESET}",
-        f"{GREEN}┌── CPI Macro Volatility Engine ───────────────────────────┐{RESET}",
-        box_row(row_cat),
-        box_row(row_mod),
-        box_row(row_ds),
-        f"{GREEN}├── Rapid Input Protocol ───────────────────────────────────┤{RESET}",
-        box_row(row_eng),
-        box_row(row_sc),
-        box_row(row_time),
-        f"{GREEN}└───────────────────────────────────────────────────────────┘{RESET}",
+        f"{GREEN}┌── CPI Macro Volatility Engine ───────────────────┐{RESET}",
+        box_row(row_cat, 50),
+        box_row(row_mod, 50),
+        box_row(row_ds, 50),
+        f"{GREEN}├── Rapid Input Protocol ───────────────────────────┤{RESET}",
+        box_row(row_eng, 50),
+        box_row(row_sc, 50),
+        box_row(row_time, 50),
+        f"{GREEN}└───────────────────────────────────────────────────┘{RESET}",
         f"{WHITE}Quantitative Forecasting Engine Online.{RESET}",
-        f"{RED}●{RESET} {GREEN}●{RESET} {YELLOW}●{RESET} {BLUE}●{RESET} {MAGENTA}●{RESET} {CYAN}●{RESET} {WHITE}●{RESET}",
+        f"{WHITE}●{RESET} {LGRAY}●{RESET} {MGRAY}●{RESET} {DGRAY}●{RESET}",
+        "",
+        "",
+        "",
         ""
     ]
 
     print("\n")
-    for l, r in zip(logo, right_panel):
-        print(f"{YELLOW}{l}{RESET}  {r}")
+    for b, r in zip(butterfly_colored, right_panel):
+        print(f" {b}  {r}")
     print("")
 
 
