@@ -6,18 +6,98 @@ and asymmetric directional skew upon US CPI macroeconomic releases.
 
 import os
 import sys
+import re
+import datetime
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import euclidean_distances
 
-# Configure Windows console encoding for Unicode support
+# Configure stdout for UTF-8 support on Windows
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
+
+# Enable ANSI escape code processing in Windows Terminal / CMD
+os.system('')
+
+# ANSI Color Palette
+GOLD = '\033[38;5;220m'
+YELLOW = '\033[1;33m'
+GREEN = '\033[1;32m'
+CYAN = '\033[1;36m'
+BLUE = '\033[1;34m'
+MAGENTA = '\033[1;35m'
+RED = '\033[1;31m'
+GRAY = '\033[90m'
+WHITE = '\033[1;37m'
+RESET = '\033[0m'
+BOLD = '\033[1m'
+
+
+def strip_ansi(s):
+    return re.sub(r'\033\[[0-9;]*m', '', s)
+
+
+def box_row(content, width=58):
+    vis = len(strip_ansi(content))
+    pad = max(0, width - vis)
+    return f"{GREEN}│{RESET}{content}{' ' * pad}{GREEN}│{RESET}"
+
+
+def print_gold_header(dataset_count=80):
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # ASCII Art Logo (XAU/USD Gold Ingot)
+    logo = [
+        r"          .______________________.          ",
+        r"         /                      /|          ",
+        r"        /      X A U / U S D   / |          ",
+        r"       /      G O L D  999.9  /  |          ",
+        r"      /______________________/   |          ",
+        r"      |                      |   |          ",
+        r"      |   .--------------.   |   |          ",
+        r"      |   |  FINE  GOLD  |   |   |          ",
+        r"      |   |   1000 g     |   |   /          ",
+        r"      |   '--------------'   |  /           ",
+        r"      |     NET LIQUIDITY    | /            ",
+        r"      |______________________|/             ",
+        r"             [ XAUUSD ]                     ",
+        r"         Institutional Desk                 ",
+        r"                                            ",
+        r"                                            "
+    ]
+
+    row_cat   = f" {CYAN}CATALYST  {RESET}  US CPI INFLATION RELEASE (BLS / FOREXFACTORY)"
+    row_mod   = f" {CYAN}MODEL     {RESET}  MACRO SURPRISE & TAIL VOLATILITY (>= 350 PIPS)"
+    row_ds    = f" {CYAN}DATABASE  {RESET}  {dataset_count} HISTORICAL CPI EVENTS (2020 - 2026)"
+    row_eng   = f" {CYAN}STATUS    {RESET}  ONLINE // RAPID PARSER READY"
+    row_sc    = f" {CYAN}SHORTCUT  {RESET}  TYPE '3, 2' FOR CORE ACT 0.3%, EST 0.2%"
+    row_time  = f" {CYAN}TIME      {RESET}  {now_str} WIB"
+
+    right_panel = [
+        f"{BOLD}{WHITE}Hey, Trader{RESET}",
+        f"{GREEN}┌── CPI Macro Volatility Engine ───────────────────────────┐{RESET}",
+        box_row(row_cat),
+        box_row(row_mod),
+        box_row(row_ds),
+        f"{GREEN}├── Rapid Input Protocol ───────────────────────────────────┤{RESET}",
+        box_row(row_eng),
+        box_row(row_sc),
+        box_row(row_time),
+        f"{GREEN}└───────────────────────────────────────────────────────────┘{RESET}",
+        f"{WHITE}Quantitative Forecasting Engine Online.{RESET}",
+        f"{RED}●{RESET} {GREEN}●{RESET} {YELLOW}●{RESET} {BLUE}●{RESET} {MAGENTA}●{RESET} {CYAN}●{RESET} {WHITE}●{RESET}",
+        ""
+    ]
+
+    print("\n")
+    for l, r in zip(logo, right_panel):
+        print(f"{YELLOW}{l}{RESET}  {r}")
+    print("")
 
 
 class CPIGoldVolatilityModel:
@@ -131,17 +211,18 @@ class CPIGoldVolatilityModel:
         # 5. Operational Playbook Status
         if prob_extreme >= 0.55 or expected_pips >= 400:
             recommendation = (
-                f"STATUS: HIGH VOLATILITY RISK!\n"
-                f"Deploy STRADDLE PENDING BRACKET (Buy Stop & Sell Stop placed 25-30 pips from spot).\n"
-                f"Stop Loss: 150-200 pips. If entering directional bias ({directional_bias}), await 5m candle close."
+                f"{RED}[!] HIGH VOLATILITY ALERT: TAIL RISK DETECTED{RESET}\n"
+                f"    - Pasang STRADDLE PENDING BRACKET (Buy Stop & Sell Stop berjarak 25-30 pips dari spot).\n"
+                f"    - Stop Loss: 150-200 pips. Jika eksekusi searah bias ({directional_bias}), tunggu candle 5 menit pertama konfirmasi."
             )
-            status_signal = "[!] HIGH VOLATILITY ALERT"
+            status_signal = f"{RED}[!] BAHAYA: VOLATILITAS TINGGI (RENTANG >= 350 PIPS){RESET}"
         else:
             recommendation = (
-                f"STATUS: NORMAL / MODERATE VOLATILITY.\n"
-                f"Avoid chasing initial 1m-3m momentum spikes (fakeouts). Standard target: 25-35 pips."
+                f"{GREEN}[OK] NORMAL VOLATILITY: INLINE MARKET REACTION{RESET}\n"
+                f"    - Hindari mengejar lonjakan sesaat menit awal (fakeouts).\n"
+                f"    - Tunggu penutupan candle 15m untuk konfirmasi, target profit wajar 25-35 pips."
             )
-            status_signal = "[OK] NORMAL VOLATILITY"
+            status_signal = f"{GREEN}[OK] AMAN: VOLATILITAS NORMAL / SEDANG{RESET}"
 
         return {
             'period': period_label,
@@ -162,80 +243,124 @@ class CPIGoldVolatilityModel:
         }
 
 
-def print_banner():
-    print("=" * 76)
-    print("   CPI MACRO SURPRISE & GOLD (XAU/USD) TAIL VOLATILITY FORECASTER   ")
-    print("=" * 76)
+def parse_cpi_token(token):
+    """
+    Parses a single number token with resilient character stripping.
+    If the user enters integers without decimal point (e.g., '3', '2', '-1'):
+    they are automatically converted to tenths (0.3, 0.2, -0.1).
+    If a decimal point is explicitly provided (e.g. '1.0', '0.3', '2.5'):
+    it is parsed directly as float.
+    """
+    token = token.strip().replace('"', '').replace("'", '').replace('\ufeff', '').replace('\u200b', '').replace('%', '').strip()
+    if not token:
+        return None
+    try:
+        if '.' in token:
+            return float(token)
+        else:
+            return float(token) / 10.0
+    except ValueError:
+        return None
+
+
+def parse_cpi_input(raw_input):
+    """
+    Parses single-line user input separated by comma, space, or slash.
+    Examples:
+      '3, 2'           -> [0.3, 0.2]
+      '3,2'            -> [0.3, 0.2]
+      '3 2'            -> [0.3, 0.2]
+      '4, 2, 2.6, 2.5' -> [0.4, 0.2, 2.6, 2.5]
+      '1.0, 0.8'       -> [1.0, 0.8]
+      ''               -> None (Benchmark Mode)
+    """
+    raw = raw_input.strip().replace('"', '').replace("'", '')
+    if not raw:
+        return None
+    
+    parts = [p.strip() for p in raw.replace(';', ',').replace('/', ',').split(',') if p.strip()]
+    if len(parts) == 1:
+        space_parts = parts[0].split()
+        if len(space_parts) > 1:
+            parts = space_parts
+
+    values = [parse_cpi_token(p) for p in parts if p.strip()]
+    values = [v for v in values if v is not None]
+    return values if len(values) > 0 else None
+
+
+def run_prediction_flow(model, df_data):
+    print("=" * 82)
+    print(f" {BOLD}{WHITE}RAPID CPI INPUT PROTOCOL{RESET}")
+    print("=" * 82)
+    print(f"  Masukkan angka rilis sekaligus dipisahkan tanda koma: {YELLOW}Actual, Forecast{RESET}")
+    print(f"  {GRAY}* Ketik {WHITE}'3, 2'{GRAY}           -> Core Actual: 0.3% | Forecast: 0.2% (tanpa perlu ketik '0.')")
+    print(f"  * Ketik {WHITE}'1.0, 0.8'{GRAY}       -> Core Actual: 1.0% | Forecast: 0.8% (jika data >= 1 gunakan titik)")
+    print(f"  * Ketik {WHITE}'4, 2, 2.6, 2.5'{GRAY} -> Core MoM: 0.4% vs 0.2% | Headline YoY: 2.6% vs 2.5%")
+    print(f"  * Tekan {WHITE}[ENTER]{GRAY} langsung -> Otomatis uji coba rilis historis terbaru (Benchmark Mode){RESET}")
+    print("-" * 82)
+
+    user_raw = input(f"{CYAN}>> Input CPI Data [Actual, Forecast]: {RESET}").strip()
+    tokens = parse_cpi_input(user_raw)
+
+    if tokens is None or len(tokens) == 0:
+        # Mode Benchmark: Rilis Terakhir di Dataset
+        latest = df_data.iloc[-1]
+        core_act = float(latest['core_mom_act'])
+        core_est = float(latest['core_mom_est'])
+        yoy_act = float(latest['cpi_yoy_act'])
+        yoy_est = float(latest['cpi_yoy_est'])
+        label = f"Benchmark Mode: Rilis {latest['release_date']} ({latest['period']})"
+    else:
+        core_act = tokens[0] if tokens[0] is not None else 0.3
+        core_est = tokens[1] if (len(tokens) > 1 and tokens[1] is not None) else 0.2
+        if len(tokens) >= 4 and tokens[2] is not None and tokens[3] is not None:
+            yoy_act = tokens[2]
+            yoy_est = tokens[3]
+        else:
+            # Otomatis estimasi YoY selaras deviasi Core
+            yoy_act = round(2.5 + (core_act - core_est), 2)
+            yoy_est = 2.5
+        label = f"Live Input: Core MoM {core_act:.1f}% (Act) vs {core_est:.1f}% (Est)"
+
+    # Jalankan inferensi kuantitatif
+    res = model.predict(core_act, core_est, yoy_act, yoy_est, period_label=label)
+
+    print("\n" + "=" * 82)
+    print(f"       {BOLD}{GOLD}HASIL ANALISIS VOLATILITAS & BIAS ARAH EMAS (XAU/USD){RESET}       ")
+    print("=" * 82)
+    print(f"  Skenario Rilis       : {WHITE}{label}{RESET}")
+    print(f"  Surprise Delta (MoM) : {YELLOW}{res['core_surprise']:+.2f}%{RESET} (Actual - Forecast)")
+    print("-" * 82)
+    print(f"  Status Sinyal        : {res['status_signal']}")
+    print(f"  Probabilitas Ekstrem : {BOLD}{res['prob_extreme']}%{RESET} (Peluang rentang gerak >= 350 pips)")
+    print(f"  Estimasi Rentang Pips: {BOLD}+/- {res['expected_pips']} Pips{RESET} (+/- $ {res['expected_dollar']} USD)")
+    print(f"  Bias Arah (Skew)     : {BOLD}{res['directional_bias']}{RESET} (Keyakinan: {res['directional_confidence']}%)")
+    print(f"  Katalis Makro        : {res['bias_reason']}")
+    print("-" * 82)
+    print(f"{BOLD}Protokol Eksekusi MetaTrader (MT4 / MT5):{RESET}")
+    print(res['recommendation'])
+    print("-" * 82)
+    print(f"{BOLD}Top-5 Rilis Historis dengan Karakter Serupa:{RESET}")
+    for _, r in res['similar_events'].iterrows():
+        dir_color = GREEN if "SURGE" in str(r['gold_direction']) else RED
+        print(f"  - {r['release_date']} ({r['period']}) | Core: {r['core_mom_act']}% vs {r['core_mom_est']}% | Rentang: {r['gold_pips_range']:>6.1f} pips | {dir_color}{r['gold_direction']}{RESET}")
+    print("=" * 82)
 
 
 def main():
-    print_banner()
-
     dataset_path = os.path.join("data", "cpi_gold_merged_dataset.csv")
     if not os.path.exists(dataset_path):
         print(f"[!] Dataset file '{dataset_path}' not found.")
-        print("[!] Ensure the historical data files are in 'data/'.")
+        print("[!] Ensure historical files are placed inside 'data/'.")
         return
 
     df_data = pd.read_csv(dataset_path)
     model = CPIGoldVolatilityModel(pip_threshold=350.0, top_k=5)
     model.fit(df_data)
 
-    print("[*] Model trained on 80 historical CPI events (2020 - 2026).")
-    print("\nSELECT OPERATING MODE:")
-    print("  1. Backtest Benchmark Mode (Latest Historical Event)")
-    print("  2. Live Trading Mode (Input New ForexFactory / BLS Release Numbers)")
-
-    choice = input("\nEnter Choice (1 or 2, default: 1): ").strip()
-    if choice != "2":
-        latest = df_data.iloc[-1]
-        core_act = float(latest['core_mom_act'])
-        core_est = float(latest['core_mom_est'])
-        yoy_act = float(latest['cpi_yoy_act'])
-        yoy_est = float(latest['cpi_yoy_est'])
-        label = f"Release {latest['release_date']} ({latest['period']})"
-    else:
-        print("\n--- INPUT CPI NUMBERS (FROM FOREXFACTORY / INVESTING.COM) ---")
-        print("Tip: Only Core CPI m/m is mandatory. YoY figures are optional.")
-        try:
-            core_act_in = input("1. Core CPI m/m Actual   (e.g., 0.3) : ").strip()
-            core_est_in = input("2. Core CPI m/m Forecast (e.g., 0.2) : ").strip()
-            core_act = float(core_act_in) if core_act_in else 0.3
-            core_est = float(core_est_in) if core_est_in else 0.2
-
-            yoy_act_in = input("3. CPI y/y Actual   [Optional - Enter to skip]: ").strip()
-            yoy_est_in = input("4. CPI y/y Forecast [Optional - Enter to skip]: ").strip()
-            if yoy_act_in and yoy_est_in:
-                yoy_act = float(yoy_act_in)
-                yoy_est = float(yoy_est_in)
-            else:
-                yoy_act = round(2.5 + (core_act - core_est), 2)
-                yoy_est = 2.5
-            label = "Live Trading Input"
-        except ValueError:
-            print("[!] Invalid number format. Falling back to default baseline.")
-            core_act, core_est, yoy_act, yoy_est = 0.3, 0.2, 2.6, 2.5
-            label = "Default Demo"
-
-    # Execute Prediction
-    res = model.predict(core_act, core_est, yoy_act, yoy_est, period_label=label)
-
-    print("\n" + "=" * 76)
-    print(f" FORECAST OUTPUT & DIRECTIONAL SKEW ANALYSIS - {label} ")
-    print("=" * 76)
-    print(f"Signal Status               : {res['status_signal']}")
-    print(f"Tail Volatility Probability : {res['prob_extreme']}% (Chance of range >= 350 pips)")
-    print(f"Expected Gold Movement      : +/- {res['expected_pips']} Pips (+/- $ {res['expected_dollar']} USD)")
-    print(f"Directional Bias (Skew)     : {res['directional_bias']} (Confidence: {res['directional_confidence']}%)")
-    print(f"Macro Driver Rationale      : {res['bias_reason']}")
-    print("-" * 76)
-    print("Execution Protocol (MT4 / MT5):")
-    print(res['recommendation'])
-    print("-" * 76)
-    print("Top-5 Closest Historical Surprise Analogues:")
-    for _, r in res['similar_events'].iterrows():
-        print(f"  - {r['release_date']} ({r['period']}) | Core MoM: {r['core_mom_act']}% vs {r['core_mom_est']}% | Range: {r['gold_pips_range']:>6.1f} pips | {r['gold_direction']}")
-    print("=" * 76)
+    print_gold_header(dataset_count=len(df_data))
+    run_prediction_flow(model, df_data)
 
 
 if __name__ == '__main__':
