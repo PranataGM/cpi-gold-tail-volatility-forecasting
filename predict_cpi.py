@@ -74,8 +74,8 @@ def print_gold_header(dataset_count=80):
     row_cat   = f" {CYAN}CATALYST  {RESET}  US CPI INFLATION RELEASE (BLS / FOREXFACTORY)"
     row_mod   = f" {CYAN}MODEL     {RESET}  MACRO SURPRISE & TAIL VOLATILITY (>= 350 PIPS)"
     row_ds    = f" {CYAN}DATABASE  {RESET}  {dataset_count} HISTORICAL CPI EVENTS (2020 - 2026)"
-    row_eng   = f" {CYAN}STATUS    {RESET}  ONLINE // RAPID PARSER READY"
-    row_sc    = f" {CYAN}SHORTCUT  {RESET}  TYPE '3, 2' FOR CORE ACT 0.3%, EST 0.2%"
+    row_eng   = f" {CYAN}STATUS    {RESET}  ONLINE // 4-DATA PARSER READY"
+    row_sc    = f" {CYAN}FORMAT    {RESET}  0.3, 0.2, 2.6, 2.5 (CORE & YOY)"
     row_time  = f" {CYAN}TIME      {RESET}  {now_str} WIB"
 
     right_panel = [
@@ -245,20 +245,14 @@ class CPIGoldVolatilityModel:
 
 def parse_cpi_token(token):
     """
-    Parses a single number token with resilient character stripping.
-    If the user enters integers without decimal point (e.g., '3', '2', '-1'):
-    they are automatically converted to tenths (0.3, 0.2, -0.1).
-    If a decimal point is explicitly provided (e.g. '1.0', '0.3', '2.5'):
-    it is parsed directly as float.
+    Parses a single number token as standard float.
+    Handles standard decimal notation (e.g., 0.3, 0.2, 2.6, 2.5, -0.1).
     """
     token = token.strip().replace('"', '').replace("'", '').replace('\ufeff', '').replace('\u200b', '').replace('%', '').strip()
     if not token:
         return None
     try:
-        if '.' in token:
-            return float(token)
-        else:
-            return float(token) / 10.0
+        return float(token)
     except ValueError:
         return None
 
@@ -266,13 +260,10 @@ def parse_cpi_token(token):
 def parse_cpi_input(raw_input):
     """
     Parses single-line user input separated by comma, space, or slash.
-    Examples:
-      '3, 2'           -> [0.3, 0.2]
-      '3,2'            -> [0.3, 0.2]
-      '3 2'            -> [0.3, 0.2]
-      '4, 2, 2.6, 2.5' -> [0.4, 0.2, 2.6, 2.5]
-      '1.0, 0.8'       -> [1.0, 0.8]
-      ''               -> None (Benchmark Mode)
+    Supports inputting all 4 data points at once:
+      '0.3, 0.2, 2.6, 2.5' -> [0.3, 0.2, 2.6, 2.5]
+      '0.3, 0.2'           -> [0.3, 0.2] (YoY auto-derived)
+      ''                   -> None (Benchmark Mode)
     """
     raw = raw_input.strip().replace('"', '').replace("'", '')
     if not raw:
@@ -291,18 +282,18 @@ def parse_cpi_input(raw_input):
 
 def run_prediction_flow(model, df_data):
     print("=" * 82)
-    print(f" {BOLD}{WHITE}RAPID CPI INPUT PROTOCOL{RESET}")
+    print(f" {BOLD}{WHITE}RAPID CPI INPUT PROTOCOL (4 DATA SEKALIGUS){RESET}")
     print("=" * 82)
-    print(f"  Masukkan angka rilis sekaligus dipisahkan tanda koma: {YELLOW}Actual, Forecast{RESET}")
-    print(f"  {GRAY}* Ketik {WHITE}'3, 2'{GRAY}           -> Core Actual: 0.3% | Forecast: 0.2% (tanpa perlu ketik '0.')")
-    print(f"  * Ketik {WHITE}'1.0, 0.8'{GRAY}       -> Core Actual: 1.0% | Forecast: 0.8% (jika data >= 1 gunakan titik)")
-    print(f"  * Ketik {WHITE}'4, 2, 2.6, 2.5'{GRAY} -> Core MoM: 0.4% vs 0.2% | Headline YoY: 2.6% vs 2.5%")
-    print(f"  * Tekan {WHITE}[ENTER]{GRAY} langsung -> Otomatis uji coba rilis historis terbaru (Benchmark Mode){RESET}")
+    print(f"  Format Urutan: {YELLOW}Core Actual, Core Forecast, YoY Actual, YoY Forecast{RESET}")
+    print(f"  {GRAY}* 4 Data Sekaligus : {WHITE}0.3, 0.2, 2.6, 2.5{GRAY} (Core MoM & Headline YoY)")
+    print(f"  * 2 Data Cepat     : {WHITE}0.3, 0.2{GRAY}           (Hanya Core MoM, YoY otomatis diestimasi)")
+    print(f"  * Tekan {WHITE}[ENTER]{GRAY}     : Langsung uji coba rilis historis terbaru (Benchmark Mode){RESET}")
     print("-" * 82)
 
-    user_raw = input(f"{CYAN}>> Input CPI Data [Actual, Forecast]: {RESET}").strip()
+    user_raw = input(f"{CYAN}>> Input Data CPI: {RESET}").strip()
     tokens = parse_cpi_input(user_raw)
 
+    has_yoy = False
     if tokens is None or len(tokens) == 0:
         # Mode Benchmark: Rilis Terakhir di Dataset
         latest = df_data.iloc[-1]
@@ -310,6 +301,7 @@ def run_prediction_flow(model, df_data):
         core_est = float(latest['core_mom_est'])
         yoy_act = float(latest['cpi_yoy_act'])
         yoy_est = float(latest['cpi_yoy_est'])
+        has_yoy = True
         label = f"Benchmark Mode: Rilis {latest['release_date']} ({latest['period']})"
     else:
         core_act = tokens[0] if tokens[0] is not None else 0.3
@@ -317,11 +309,13 @@ def run_prediction_flow(model, df_data):
         if len(tokens) >= 4 and tokens[2] is not None and tokens[3] is not None:
             yoy_act = tokens[2]
             yoy_est = tokens[3]
+            has_yoy = True
+            label = f"Live 4-Data: Core {core_act:.1f}% vs {core_est:.1f}% | YoY {yoy_act:.1f}% vs {yoy_est:.1f}%"
         else:
             # Otomatis estimasi YoY selaras deviasi Core
             yoy_act = round(2.5 + (core_act - core_est), 2)
             yoy_est = 2.5
-        label = f"Live Input: Core MoM {core_act:.1f}% (Act) vs {core_est:.1f}% (Est)"
+            label = f"Live 2-Data: Core MoM {core_act:.1f}% vs {core_est:.1f}% (YoY Auto-derived)"
 
     # Jalankan inferensi kuantitatif
     res = model.predict(core_act, core_est, yoy_act, yoy_est, period_label=label)
@@ -330,7 +324,9 @@ def run_prediction_flow(model, df_data):
     print(f"       {BOLD}{GOLD}HASIL ANALISIS VOLATILITAS & BIAS ARAH EMAS (XAU/USD){RESET}       ")
     print("=" * 82)
     print(f"  Skenario Rilis       : {WHITE}{label}{RESET}")
-    print(f"  Surprise Delta (MoM) : {YELLOW}{res['core_surprise']:+.2f}%{RESET} (Actual - Forecast)")
+    print(f"  Surprise Delta (MoM) : {YELLOW}{res['core_surprise']:+.2f}%{RESET} (Core Actual - Forecast)")
+    if has_yoy:
+        print(f"  Surprise Delta (YoY) : {YELLOW}{res['yoy_surprise']:+.2f}%{RESET} (Headline Actual - Forecast)")
     print("-" * 82)
     print(f"  Status Sinyal        : {res['status_signal']}")
     print(f"  Probabilitas Ekstrem : {BOLD}{res['prob_extreme']}%{RESET} (Peluang rentang gerak >= 350 pips)")
