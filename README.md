@@ -75,19 +75,17 @@ Pengujian dilakukan secara ketat pada data *out-of-sample* (2025–2026, $N=20$ 
 ## 4. Struktur Direktori Proyek
 
 ```text
-C:\Users\User\Desktop\CPI trading/
+cpi/
 ├── data/
 │   ├── cpi_releases_history.csv       # 80 data rilis resmi CPI (2020 - 2026)
 │   ├── gold_price_cache.csv           # 1.721 candle harian COMEX Gold (GC=F)
 │   └── cpi_gold_merged_dataset.csv    # Dataset terintegrasi CPI dan harga riil emas
-├── cpi_gold_volatility_model.ipynb    # Jupyter Notebook riset lengkap dengan visualisasi pre-rendered
-├── cpi_gold_volatility_model.py       # Engine pustaka model kuantitatif & rekayasa fitur
-├── jalankan_prediksi_cpi.py           # Antarmuka CLI pengujian otomatis & kalkulator rilis live
-├── PREDIKSI_CPI.bat                   # Launcher 1-klik untuk Windows
-├── PANDUAN_TRADING_CPI.txt            # SOP ringkas eksekusi trading
+├── cpi_gold_volatility_model.ipynb    # Jupyter Notebook riset lengkap & visualisasi validasi
+├── predict_cpi.py                     # Unified Quantitative Model Engine & Interactive CLI Forecaster
+├── predict_cpi.bat                    # Launcher eksekusi 1-klik untuk Windows
 ├── requirements.txt                   # Daftar dependensi pustaka Python
 ├── LICENSE                            # Lisensi resmi open-source MIT
-└── README.md                          # Dokumentasi resmi proyek
+└── README.md                          # Dokumentasi resmi & panduan operasional proyek
 ```
 
 ---
@@ -103,7 +101,7 @@ C:\Users\User\Desktop\CPI trading/
 
 ```bash
 # 1. Masuk ke direktori proyek
-cd "C:\Users\User\Desktop\CPI trading"
+cd cpi
 
 # 2. Buat virtual environment (opsional tetapi disarankan)
 python -m venv venv
@@ -123,17 +121,16 @@ pip install -r requirements.txt
 ### Cara 1: Eksekusi 1-Klik (Windows)
 1. Buka folder kerja dan **klik 2 kali** file:
    ```text
-   PREDIKSI_CPI.bat
+   predict_cpi.bat
    ```
 2. Pilih mode operasi:
-   * **Mode 1**: Uji coba otomatis pada rilis CPI terbaru.
-   * **Mode 2**: Masukkan 2 angka utama rilis CPI hari H (*Core CPI m/m Actual & Forecast* dari ForexFactory, angka YoY opsional).
-3. Dalam 1 detik, sistem langsung menampilkan probabilitas volatilitas, estimasi rentang pips, dan bias arah di layar.
-4. Hasil kalkulasi otomatis tercatat ke dalam berkas `riwayat_prediksi_cpi.csv`.
+   * **Mode 1**: Uji coba otomatis pada rilis CPI historis terbaru.
+   * **Mode 2**: Masukkan 2 angka utama rilis CPI hari H (*Core CPI m/m Actual & Forecast* dari ForexFactory / Investing.com, angka YoY opsional).
+3. Dalam 1 detik, sistem langsung menampilkan probabilitas volatilitas ekstrem, estimasi rentang pips, dan bias arah di layar.
 
 ### Cara 2: Menjalankan via Terminal / CLI
 ```bash
-python jalankan_prediksi_cpi.py
+python predict_cpi.py
 ```
 
 ### Cara 3: Membuka Notebook Riset Interaktif

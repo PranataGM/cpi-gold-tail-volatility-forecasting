@@ -3,17 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-venv/
-ENV/
-build/
-dist/
-
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
@@ -27,3 +16,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime execution logs (keep data/ tracked)
+riwayat_prediksi_cpi.csv
+*.csv
+!data/*.csv
